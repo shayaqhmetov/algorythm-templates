@@ -1,15 +1,14 @@
 # Нужна гарантия на монотонный предикант 
 # Мы ищем границы а не результат поэтому просто == не получится
 def bs(lo, hi, ok):
-  while (lo < hi): 
-    mid = lo + ((hi - lo) // 2)
+  while lo < hi:
+    mid = lo + (hi - lo) // 2
     if ok(mid):
-      return mid
+      hi = mid
     else:
-      lo = mid - 1
-    hi = mid
-    print(lo, hi, mid)
-  return mid
+      lo = mid + 1
+  return lo 
+  
   
 
 a = [1, 3, 3, 5, 7]
