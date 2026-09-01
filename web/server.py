@@ -205,47 +205,55 @@ def discover():
 # сборка запускаемого файла
 # ---------------------------------------------------------------------------
 
-def compose(block, name, target, user_code):
+def compose_parts(block, name, target):
     """
-    Эталон, в котором целевая функция заменена кодом из редактора,
-    плюс вызов её тестов. Всё остальное берётся из эталона рабочим —
-    дриллим одну функцию, не спотыкаясь об остальные.
+    Разбирает эталон на две половины: то, что идёт до целевой функции,
+    и то, что после, вместе с вызовом её тестов.
+    Готовый файл = prefix + твой код + suffix.
     """
     ethalon_path = PART / "ethalons" / block / f"{name}-ethalon.py"
     src, tree, _ = collect(ethalon_path)
 
     targets = [f["name"] for f in load_template(block, name)["functions"]] \
         if target == "__all__" else [target]
+    lowered = [t.lower() for t in targets]
 
-    chunks = []
-    used_tests = []
-    replaced = set()
+    before, after, used_tests = [], [], []
+    seen_target = target == "__all__"
 
     for i, node in enumerate(tree.body):
         if i == 0 and isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
             continue                                   # docstring модуля
         if isinstance(node, ast.Expr):                 # вызовы тестов и print
             continue
-        if is_definition(node) and node.name in targets:
-            if target != "__all__":
-                chunks.append(user_code.rstrip() + "\n")
-                replaced.add(node.name)
-                continue
+
+        if is_definition(node) and node.name in targets and target != "__all__":
+            seen_target = True                         # тут будет код из редактора
+            continue
+
         if is_test(node):
-            if node.name[len("test_"):] in [t.lower() for t in targets]:
-                chunks.append(ast.get_source_segment(src, node))
+            if node.name[len("test_"):] in lowered:
+                (after if seen_target else before).append(ast.get_source_segment(src, node))
                 used_tests.append(node.name)
             continue
-        chunks.append(ast.get_source_segment(src, node))
 
-    if target != "__all__" and target not in replaced:
-        chunks.insert(0, user_code.rstrip() + "\n")
+        (after if seen_target else before).append(ast.get_source_segment(src, node))
 
-    body = "\n\n\n".join(c for c in chunks if c)
     calls = "\n".join(f"{t}()" for t in used_tests)
-    tail = f'\n\n\n{calls}\nprint("ok — тесты прошли")\n' if calls else \
-           '\n\nprint("тестов для этой функции нет")\n'
-    return body + tail
+    tail = f'{calls}\nprint("ok — тесты прошли")\n' if calls else \
+           'print("тестов для этой функции нет")\n'
+
+    join = lambda parts: "\n\n\n".join(x for x in parts if x)
+    prefix = join(before) + ("\n\n\n" if before else "")
+    suffix = "\n\n\n" + join(after + [tail]) if after else "\n\n\n" + tail
+    return prefix, suffix
+
+
+def compose(block, name, target, user_code):
+    """Эталон, в котором целевая функция заменена кодом из редактора."""
+    prefix, suffix = compose_parts(block, name, target)
+    body = user_code.rstrip() + "\n" if target != "__all__" else ""
+    return prefix + body + suffix
 
 
 ANSI = re.compile(r"\x1b\[[0-9;]*m")

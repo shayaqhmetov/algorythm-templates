@@ -347,6 +347,88 @@ const timer = { sec: 0, limit: 300, running: false, id: null, touched: false };
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => (s || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 
+/* ---------- источник данных: локальный сервер или статика на Pages ---------- */
+const RUN_TIMEOUT = 15000;
+const BOOT_TIMEOUT = 120000;                 // первый запуск тянет питон в браузер
+
+const api = {
+  offline: false,                            // true — сервера нет, читаем запечённый json
+  cache: {},
+
+  async blocks() {
+    try {
+      const r = await fetch("api/templates");
+      if (!r.ok) throw new Error("нет сервера");
+      return (await r.json()).blocks;
+    } catch (e) {
+      api.offline = true;
+      const r = await fetch("data/templates.json");
+      return (await r.json()).blocks;
+    }
+  },
+
+  async template(id) {
+    if (api.cache[id]) return api.cache[id];
+    const url = api.offline ? `data/${id.replace("/", "__")}.json` : "api/template/" + id;
+    const t = await (await fetch(url)).json();
+    api.cache[id] = t;
+    return t;
+  },
+
+  async run(tpl, target, code) {
+    if (!api.offline) {
+      const r = await fetch("api/run", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ block: tpl.block, name: tpl.name, target, code }),
+      });
+      return await r.json();
+    }
+    const parts = (tpl.run || {})[target];
+    if (!parts) {
+      return { ok: false, stdout: "", stderr: "для этой функции нет собранного запуска", source: code };
+    }
+    return runInBrowser(parts.prefix + code.replace(/\s+$/, "") + "\n" + parts.suffix);
+  },
+};
+
+/* python в браузере: воркер, чтобы бесконечный цикл можно было убить */
+let pyWorker = null;
+let pyBooted = false;
+
+function runInBrowser(source) {
+  return new Promise(resolve => {
+    if (!pyWorker) pyWorker = new Worker("pyworker.js");
+    const w = pyWorker;
+    const limit = pyBooted ? RUN_TIMEOUT : BOOT_TIMEOUT;
+
+    const timer = setTimeout(() => {
+      const booted = pyBooted;                 // сбрасываем ниже, флаг нужен сейчас
+      w.terminate();
+      pyWorker = null; pyBooted = false;
+      resolve({
+        ok: false, stdout: "", source,
+        stderr: booted
+          ? `Таймаут: код не уложился в ${RUN_TIMEOUT / 1000} с.\n` +
+            "Скорее всего бесконечный цикл или забытый сдвиг указателя."
+          : "Не дождался загрузки python в браузере. Проверь сеть и запусти ещё раз.",
+      });
+    }, limit);
+
+    w.onmessage = ({ data }) => {
+      clearTimeout(timer);
+      pyBooted = true;
+      resolve({ ...data, source });
+    };
+    w.onerror = e => {
+      clearTimeout(timer);
+      pyWorker = null;
+      resolve({ ok: false, stdout: "", source, stderr: "python в браузере не запустился: " + e.message });
+    };
+
+    w.postMessage({ source });
+  });
+}
+
 /* ---------- языки: подсветка и правила редактирования ---------- */
 const LANGS = {
   python: {
@@ -960,18 +1042,17 @@ function resetTimer() { stopTimer(); timer.sec = 0; paintTimer(); }
 async function run() {
   const t = state.tpl, fn = state.func;
   const out = $("#out");
-  out.innerHTML = `<div class="head"><span style="color:var(--dim)">гоняю тесты…</span></div>`;
+  out.innerHTML = `<div class="head"><span style="color:var(--dim)">${
+    api.offline && !pyBooted ? "загружаю python в браузере, это разово ~10 МБ…" : "гоняю тесты…"
+  }</span></div>`;
   saveDraft();
 
   let res;
   try {
-    const r = await fetch("/api/run", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ block: t.block, name: t.name, target: fn, code: $("#editor").value }),
-    });
-    res = await r.json();
+    res = await api.run(t, fn, $("#editor").value);
   } catch (e) {
-    out.innerHTML = `<div class="head"><span class="st bad">сервер не отвечает</span></div>`;
+    out.innerHTML = `<div class="head"><span class="st bad">запустить не вышло</span>
+      <span style="color:var(--dim)">${esc(e.message || String(e))}</span></div>`;
     return;
   }
 
@@ -1067,8 +1148,7 @@ async function openTemplate(id, sess) {
   saveDraft();
   saveSession();
 
-  const r = await fetch("/api/template/" + id);
-  state.tpl = await r.json();
+  state.tpl = await api.template(id);
 
   const names = state.tpl.functions.map(f => f.name);
   const remembered = (sess && sess.id === id && sess.func) || localStorage.getItem(FN_KEY(id));
@@ -1126,8 +1206,7 @@ window.addEventListener("hashchange", () => {
 });
 
 (async function boot() {
-  const r = await fetch("/api/templates");
-  state.blocks = (await r.json()).blocks;
+  state.blocks = await api.blocks();
   renderNav();
 
   const sess = loadSession();
