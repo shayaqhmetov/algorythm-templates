@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "algodrill",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["web/server.py", "8765"],
+      "port": 8765
+    }
+  ]
+}
