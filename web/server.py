@@ -27,8 +27,6 @@ WEB = Path(__file__).resolve().parent
 ROOT = WEB.parent
 PART = ROOT / "algorythms" / "part-1"
 
-HELPERS = {"TreeNode", "build", "is_valid_order", "norm_sets", "norm_seqs"}
-
 RUN_TIMEOUT = 15          # секунд на прогон тестов
 MAX_BODY = 512 * 1024     # ограничение на размер запроса
 
@@ -58,21 +56,6 @@ def is_test(node):
 
 def is_definition(node):
     return isinstance(node, (ast.FunctionDef, ast.ClassDef))
-
-
-def is_stub(node):
-    """
-    В дрилле цель — это функция с телом pass. Всё, что написано целиком
-    (TreeNode, build, is_valid_order, norm_sets), — вспомогательное
-    и дриллить его не надо.
-    """
-    if isinstance(node, ast.ClassDef):
-        methods = [b for b in node.body if isinstance(b, ast.FunctionDef)]
-        return any(is_stub(m) for m in methods)
-
-    body = [b for b in node.body
-            if not (isinstance(b, ast.Expr) and isinstance(b.value, ast.Constant))]
-    return len(body) == 1 and isinstance(body[0], ast.Pass)
 
 
 def parse_module(path):
@@ -144,11 +127,9 @@ def load_template(block, name):
     for fname, d in edefs.items():
         if fname.startswith("test_"):
             continue
+        if f"test_{fname.lower()}" not in tests:
+            continue                                   # без теста — вспомогательный код
         drill = ddefs.get(fname)
-        if drill is not None and not is_stub(drill["node"]):
-            continue                                   # вспомогательный код
-        if drill is None and fname in HELPERS:
-            continue
         functions.append({
             "name": fname,
             "kind": "class" if isinstance(d["node"], ast.ClassDef) else "function",
@@ -202,14 +183,169 @@ def discover():
 
 
 # ---------------------------------------------------------------------------
+# отчёт по кейсам, как на LeetCode
+# ---------------------------------------------------------------------------
+
+# Кладётся в начало собранного файла. Каждый assert теста превращается
+# в _DRILL.case(...): упавший кейс не обрывает прогон, а попадает в отчёт
+# со вводом, ответом, ожидаемым и подсказкой. Отчёт — последняя строка stdout.
+HARNESS = '''\
+# ---- обвязка тренажёра: каждый assert теста — отдельный кейс, прогон не обрывается ----
+import io as _io
+import json as _json
+import sys as _sys
+import traceback as _tb
+from contextlib import redirect_stdout as _redirect
+
+
+class _Drill:
+    OPS = {
+        "==": lambda a, b: a == b, "!=": lambda a, b: a != b,
+        "is": lambda a, b: a is b, "is not": lambda a, b: a is not b,
+        "in": lambda a, b: a in b, "not in": lambda a, b: a not in b,
+        "<": lambda a, b: a < b, "<=": lambda a, b: a <= b,
+        ">": lambda a, b: a > b, ">=": lambda a, b: a >= b,
+    }
+
+    def __init__(self):
+        self.first = self.last = 0
+        self.cases = []
+
+    def user_start(self):
+        self.first = _sys._getframe(1).f_lineno + 1
+
+    def user_end(self):
+        self.last = _sys._getframe(1).f_lineno - 1
+
+    @staticmethod
+    def show(value):
+        text = repr(value)
+        return text if len(text) <= 500 else text[:500] + " …"
+
+    def error(self, exc):
+        where = None                       # строка ТВОЕГО кода, где всё упало
+        for frame in reversed(_tb.extract_tb(exc.__traceback__)):
+            if self.first <= frame.lineno <= self.last:
+                where = frame.lineno - self.first + 1
+                break
+        return {"error": f"{type(exc).__name__}: {exc}"[:500], "where": where}
+
+    def case(self, k, left, right):
+        c = self.cases[k - 1]
+        c["runs"] += 1
+        out, fail = _io.StringIO(), None
+        try:
+            with _redirect(out):
+                got = left()
+                want = right() if right is not None else True
+            ok = self.OPS[c["op"]](got, want) if c["op"] else bool(got)
+            if not ok:
+                fail = {"got": self.show(got), "want": self.show(want) if c["op"] else None}
+        except Exception as exc:
+            fail = self.error(exc)
+        if c["stdout"] is None:
+            c["stdout"] = out.getvalue()[-2000:]
+        if fail is None:
+            c["passed"] += 1
+        elif c["fail"] is None:            # в цикле показываем первый провал
+            fail["stdout"] = out.getvalue()[-2000:]
+            c["fail"] = fail
+
+    def run(self, tests):
+        report = []
+        for fn, plan in tests:
+            self.cases = [dict(meta, runs=0, passed=0, fail=None, stdout=None) for meta in plan]
+            entry = {"name": fn.__name__, "cases": self.cases, "crash": None}
+            out = _io.StringIO()
+            try:
+                with _redirect(out):
+                    fn()
+            except Exception as exc:           # упало не в кейсе, а в подготовке теста
+                entry["crash"] = dict(self.error(exc), stdout=out.getvalue()[-2000:])
+            report.append(entry)
+        cases = [c for t in report for c in t["cases"]]
+        print("__DRILL_REPORT__" + _json.dumps({
+            "tests": report,
+            "total": len(cases),
+            "passed": sum(1 for c in cases if c["runs"] and c["fail"] is None),
+        }, ensure_ascii=False))
+
+
+_DRILL = _Drill()'''
+
+CMP_OPS = {
+    ast.Eq: "==", ast.NotEq: "!=", ast.Is: "is", ast.IsNot: "is not",
+    ast.In: "in", ast.NotIn: "not in", ast.Lt: "<", ast.LtE: "<=", ast.Gt: ">", ast.GtE: ">=",
+}
+
+
+def _flat(code):
+    """Многострочный ввод — в одну строку, как на LeetCode."""
+    code = re.sub(r"\s*\n\s*", " ", code)
+    code = re.sub(r"([\[({])\s+", r"\1", code)
+    return re.sub(r"\s+([\])}])", r"\1", code)
+
+
+def _hint(lines, node):
+    """Ближайший комментарий над assert-ом и хвостовой на той же строке — там ловушки (!)."""
+    block, i = [], node.lineno - 2
+    while i >= 1:                                   # строка 0 — сам def
+        text = lines[i].strip()
+        if text.startswith("#"):
+            block.append(text.lstrip("#").strip())
+        elif block:
+            break
+        i -= 1
+    block.reverse()
+
+    tail = lines[node.end_lineno - 1].encode()[node.end_col_offset:].decode().strip()
+    parts = [" ".join(block)] if block else []
+    if tail.startswith("#"):
+        parts.append(tail.lstrip("#").strip())
+    return " · ".join(parts) or None
+
+
+def _instrument(test_src):
+    """assert-ы теста -> _DRILL.case(...). Возвращает новый исходник и план кейсов."""
+    fn = ast.parse(test_src).body[0]
+    lines = test_src.split("\n")
+    asserts = sorted((n for n in ast.walk(fn) if isinstance(n, ast.Assert)),
+                     key=lambda n: (n.lineno, n.col_offset))
+
+    def pos(lineno, col):                           # col у ast — в байтах utf-8
+        head = sum(len(line) + 1 for line in lines[:lineno - 1])
+        return head + len(lines[lineno - 1].encode()[:col].decode())
+
+    seg = lambda n: ast.get_source_segment(test_src, n)
+    plan, edits = [], []
+    for k, node in enumerate(asserts, 1):
+        t = node.test
+        if isinstance(t, ast.Compare) and len(t.ops) == 1 and type(t.ops[0]) in CMP_OPS:
+            op, left, right = CMP_OPS[type(t.ops[0])], seg(t.left), seg(t.comparators[0])
+            call = f"_DRILL.case({k}, lambda: ({left}), lambda: ({right}))"
+        else:
+            op, left, right = None, seg(t), None
+            call = f"_DRILL.case({k}, lambda: ({left}), None)"
+        plan.append({"input": _flat(left), "expect": _flat(right) if right else None,
+                     "op": op, "hint": _hint(lines, node)})
+        edits.append((pos(node.lineno, node.col_offset),
+                      pos(node.end_lineno, node.end_col_offset), call))
+
+    for start, end, call in reversed(edits):
+        test_src = test_src[:start] + call + test_src[end:]
+    return test_src, plan
+
+
+# ---------------------------------------------------------------------------
 # сборка запускаемого файла
 # ---------------------------------------------------------------------------
 
 def compose_parts(block, name, target):
     """
     Разбирает эталон на две половины: то, что идёт до целевой функции,
-    и то, что после, вместе с вызовом её тестов.
-    Готовый файл = prefix + твой код + suffix.
+    и то, что после, вместе с тестами и отчётом по кейсам.
+    Готовый файл = prefix + твой код + suffix; твой код начинается
+    ровно на строке prefix.count("\\n") + 1.
     """
     ethalon_path = PART / "ethalons" / block / f"{name}-ethalon.py"
     src, tree, _ = collect(ethalon_path)
@@ -233,19 +369,24 @@ def compose_parts(block, name, target):
 
         if is_test(node):
             if node.name[len("test_"):] in lowered:
-                (after if seen_target else before).append(ast.get_source_segment(src, node))
-                used_tests.append(node.name)
+                test_src, plan = _instrument(ast.get_source_segment(src, node))
+                (after if seen_target else before).append(test_src)
+                used_tests.append((node.name, plan))
             continue
 
         (after if seen_target else before).append(ast.get_source_segment(src, node))
 
-    calls = "\n".join(f"{t}()" for t in used_tests)
-    tail = f'{calls}\nprint("ok — тесты прошли")\n' if calls else \
-           'print("тестов для этой функции нет")\n'
+    if used_tests:
+        tail = "_DRILL.run([\n" + "".join(
+            f"    ({test}, {plan!r}),\n" for test, plan in used_tests) + "])\n"
+    else:
+        tail = 'print("тестов для этой функции нет")\n'
 
     join = lambda parts: "\n\n\n".join(x for x in parts if x)
-    prefix = join(before) + ("\n\n\n" if before else "")
-    suffix = "\n\n\n" + join(after + [tail]) if after else "\n\n\n" + tail
+    prefix = join([HARNESS] + before) + \
+        "\n\n\n_DRILL.user_start()                       # ниже — твой код\n"
+    suffix = "\n_DRILL.user_end()                         # выше — твой код\n\n\n" + \
+        join(after + [tail])
     return prefix, suffix
 
 
@@ -350,7 +491,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"error": "шаблон не найден"}, 404)
 
         try:
-            source = compose(block, name, target, code)
+            prefix, suffix = compose_parts(block, name, target)
         except SyntaxError as e:
             return self._json({
                 "ok": False, "stdout": "",
@@ -358,7 +499,10 @@ class Handler(BaseHTTPRequestHandler):
                 "source": code,
             })
 
-        return self._json(run_code(source))
+        body = code.rstrip() + "\n" if target != "__all__" else ""
+        result = run_code(prefix + body + suffix)
+        result["user_start"] = prefix.count("\n") + 1     # чтобы перевести номера строк в твои
+        return self._json(result)
 
 
 def main():
