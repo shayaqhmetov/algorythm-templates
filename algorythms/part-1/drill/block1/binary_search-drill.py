@@ -78,6 +78,7 @@ def test_bs():
     assert bs(0, 1, lambda i: a[i] >= 1) == 0
     assert bs(0, 1, lambda i: a[i] >= 2) == 1
     assert bs(5, 10, lambda x: x >= 8) == 8
+    assert bs(0, 3, lambda i: [1, 3, 5][i] >= 3) == 1
 
 
 def test_search_range():
