@@ -5,7 +5,7 @@
 merge_sort-ethalon.py, туда заглядывать ТОЛЬКО после запуска тестов.
 
 Одна функция за сессию, 5 минут.
-Ротация: 1) merge  2) merge_sort  3) count_inversions  4) с начала.
+Ротация: 1) merge  2) merge_sort  3) count_inversions  4) merge_into.
 merge пишется каждый раз, на нём стоят обе остальные.
 
 Перед тем как писать, проговори вслух: ПОЧЕМУ В merge ЗНАК <=, А НЕ <.
@@ -54,6 +54,24 @@ def merge_sort(nums):
 # =============================================================================
 
 def count_inversions(nums):
+    pass
+
+
+# =============================================================================
+# merge_into — LeetCode 88
+#
+# nums1 имеет длину m + n: первые m элементов отсортированы, последние n —
+# пустые ячейки под результат (в них может лежать что угодно).
+# nums2 — отсортированный массив длины n.
+# Слить nums2 в nums1 НА МЕСТЕ, без нового массива, и вернуть nums1.
+#
+#     nums1 = [1, 2, 3, 0, 0, 0], m = 3, nums2 = [2, 5, 6], n = 3
+#     -> [1, 2, 2, 3, 5, 6]
+#
+#     nums1 = [0], m = 0, nums2 = [1], n = 1  -> [1]
+# =============================================================================
+
+def merge_into(nums1, m, nums2, n):
     pass
 
 
@@ -126,8 +144,24 @@ def test_count_inversions():
     assert count_inversions(big) == naive
 
 
+def test_merge_into():
+    assert merge_into([1, 2, 3, 0, 0, 0], 3, [2, 5, 6], 3) == [1, 2, 2, 3, 5, 6]
+    assert merge_into([1], 1, [], 0) == [1]
+    assert merge_into([0], 0, [1], 1) == [1]
+    assert merge_into([0, 0], 0, [1, 2], 2) == [1, 2]
+    assert merge_into([4, 5, 6, 0, 0, 0], 3, [1, 2, 3], 3) == [1, 2, 3, 4, 5, 6]
+    assert merge_into([1, 2, 3, 0, 0, 0], 3, [4, 5, 6], 3) == [1, 2, 3, 4, 5, 6]
+    assert merge_into([1, 3, 99, 99], 2, [2, 4], 2) == [1, 2, 3, 4]
+    assert merge_into([0, 0, 0, 0], 2, [-1, 0], 2) == [-1, 0, 0, 0]
+    assert merge_into([2, 2, 0, 0], 2, [2, 2], 2) == [2, 2, 2, 2]
+    a = [1, 0]
+    assert merge_into(a, 1, [2], 1) is a
+    assert a == [1, 2]
+
+
 # Закомментируй те, что сегодня не пишешь.
 test_merge()
 test_merge_sort()
 test_count_inversions()
+test_merge_into()
 print("ok")

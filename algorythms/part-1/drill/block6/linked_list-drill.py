@@ -5,7 +5,8 @@
 linked_list-ethalon.py, туда заглядывать ТОЛЬКО после запуска тестов.
 
 Одна функция за сессию, 5 минут.
-Ротация: 1) reverse_list  2) merge_two_lists  3) detect_cycle  4) с начала.
+Ротация: 1) reverse_list  2) merge_two_lists  3) detect_cycle
+         4) remove_nth_from_end.
 ListNode и сборщики списков дриллить не надо, они уже написаны.
 
 Перед тем как писать, проговори вслух: ЧТО ВЕРНУТЬ В КОНЦЕ.
@@ -98,6 +99,22 @@ def detect_cycle(head):
 
 
 # =============================================================================
+# remove_nth_from_end — LeetCode 19
+#
+# Дана голова списка и число n, 1 <= n <= длина списка.
+# Удалить n-й узел С КОНЦА и вернуть голову.
+# За ОДИН проход: длину списка заранее не считать.
+#
+#     1 -> 2 -> 3 -> 4 -> 5, n = 2  ->  1 -> 2 -> 3 -> 5
+#     1 -> 2, n = 2                 ->  2          (удалена голова)
+#     1, n = 1                      ->  None
+# =============================================================================
+
+def remove_nth_from_end(head, n):
+    pass
+
+
+# =============================================================================
 # ТЕСТЫ
 # =============================================================================
 
@@ -149,8 +166,22 @@ def test_detect_cycle():
     assert detect_cycle(build_list([1, 2, 3, 4])) is None
 
 
+def test_remove_nth_from_end():
+    assert to_list(remove_nth_from_end(build_list([1, 2, 3, 4, 5]), 2)) == [1, 2, 3, 5]
+    assert to_list(remove_nth_from_end(build_list([1, 2]), 2)) == [2]
+    assert to_list(remove_nth_from_end(build_list([1, 2, 3]), 3)) == [2, 3]
+    assert remove_nth_from_end(build_list([1]), 1) is None
+    assert to_list(remove_nth_from_end(build_list([1, 2]), 1)) == [1]
+    assert to_list(remove_nth_from_end(build_list([1, 2, 3]), 1)) == [1, 2]
+    assert to_list(remove_nth_from_end(build_list([1, 2, 3]), 2)) == [1, 3]
+    assert to_list(remove_nth_from_end(build_list([7, 7, 7]), 2)) == [7, 7]
+    head = build_list([1, 2, 3])
+    assert remove_nth_from_end(head, 1) is head
+
+
 # Закомментируй те, что сегодня не пишешь.
 test_reverse_list()
 test_merge_two_lists()
 test_detect_cycle()
+test_remove_nth_from_end()
 print("ok")

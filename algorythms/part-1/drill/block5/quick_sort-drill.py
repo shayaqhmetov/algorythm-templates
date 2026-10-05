@@ -5,7 +5,7 @@
 quick_sort-ethalon.py, туда заглядывать ТОЛЬКО после запуска тестов.
 
 Одна функция за сессию, 5 минут.
-Ротация: 1) partition  2) quick_sort  3) quick_select  4) с начала.
+Ротация: 1) partition  2) quick_sort  3) quick_select  4) sort_colors.
 partition пишется каждый раз, на нём стоят обе остальные.
 
 Перед тем как писать, проговори вслух: ЧТО ВОЗВРАЩАЕТ partition
@@ -58,6 +58,22 @@ def quick_sort(nums):
 # =============================================================================
 
 def quick_select(nums, k):
+    pass
+
+
+# =============================================================================
+# sort_colors — LeetCode 75
+#
+# Дан массив из 0, 1 и 2 в произвольном порядке.
+# Упорядочить его НА МЕСТЕ за один проход и вернуть тот же список.
+# Считать количество каждого значения и перезаписывать нельзя.
+#
+#     [2, 0, 2, 1, 1, 0]  -> [0, 0, 1, 1, 2, 2]
+#     [1, 2, 0]           -> [0, 1, 2]
+#     []                  -> []
+# =============================================================================
+
+def sort_colors(nums):
     pass
 
 
@@ -132,8 +148,28 @@ def test_quick_select():
     assert all(quick_select(big, k) == ordered[k - 1] for k in range(1, 201))
 
 
+def test_sort_colors():
+    assert sort_colors([2, 0, 2, 1, 1, 0]) == [0, 0, 1, 1, 2, 2]
+    assert sort_colors([2, 0, 1]) == [0, 1, 2]
+    assert sort_colors([1, 2, 0]) == [0, 1, 2]
+    assert sort_colors([1, 0]) == [0, 1]
+    assert sort_colors([2, 2, 2]) == [2, 2, 2]
+    assert sort_colors([0, 0]) == [0, 0]
+    assert sort_colors([1, 1, 1]) == [1, 1, 1]
+    assert sort_colors([2, 0, 2, 0]) == [0, 0, 2, 2]
+    assert sort_colors([0, 1, 2]) == [0, 1, 2]
+    assert sort_colors([2, 1, 0]) == [0, 1, 2]
+    assert sort_colors([]) == []
+    assert sort_colors([1]) == [1]
+    a = [2, 0]
+    assert sort_colors(a) is a
+    big = [(i * 7 + i // 3) % 3 for i in range(60)]
+    assert sort_colors(big[:]) == sorted(big)
+
+
 # Закомментируй те, что сегодня не пишешь.
 test_partition()
 test_quick_sort()
 test_quick_select()
+test_sort_colors()
 print("ok")

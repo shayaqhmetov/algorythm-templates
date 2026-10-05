@@ -6,7 +6,7 @@ monotonic_stack-ethalon.py, туда заглядывать ТОЛЬКО пос�
 
 Одна функция за сессию, 5 минут.
 Ротация: 1) next_greater  2) daily_temperatures  3) largest_rectangle
-         4) с начала.
+         4) next_greater_circular.
 
 Перед тем как писать, проговори вслух: ЧТО ЛЕЖИТ В СТЕКЕ И КОГДА ОНО УХОДИТ.
 В третьей функции знак сравнения ДРУГОЙ, чем в первых двух — это не опечатка.
@@ -61,6 +61,22 @@ def largest_rectangle(heights):
 
 
 # =============================================================================
+# next_greater_circular — LeetCode 503
+#
+# Дан массив чисел, замкнутый в КОЛЬЦО: за последним элементом снова
+# идёт первый. Для каждого элемента найти ближайший СТРОГО больший,
+# если идти вправо по кругу. Такого нет — -1.
+#
+#     [1, 2, 1]  -> [2, -1, 2]
+#     [3, 2, 1]  -> [-1, 3, 3]
+#     [2, 2, 2]  -> [-1, -1, -1]
+# =============================================================================
+
+def next_greater_circular(nums):
+    pass
+
+
+# =============================================================================
 # ТЕСТЫ
 # =============================================================================
 
@@ -101,8 +117,22 @@ def test_largest_rectangle():
     assert largest_rectangle([0]) == 0
 
 
+def test_next_greater_circular():
+    assert next_greater_circular([1, 2, 1]) == [2, -1, 2]
+    assert next_greater_circular([1, 2, 3, 4, 3]) == [2, 3, 4, -1, 4]
+    assert next_greater_circular([3, 2, 1]) == [-1, 3, 3]
+    assert next_greater_circular([1, 2, 3]) == [2, 3, -1]
+    assert next_greater_circular([2, 2, 2]) == [-1, -1, -1]
+    assert next_greater_circular([5, 1, 5]) == [-1, 5, -1]
+    assert next_greater_circular([1, 1, 9, 4, 2]) == [9, 9, -1, 9, 9]
+    assert next_greater_circular([]) == []
+    assert next_greater_circular([7]) == [-1]
+    assert next_greater_circular([5, 4, 3, 2, 1]) == [-1, 5, 5, 5, 5]
+
+
 # Закомментируй те, что сегодня не пишешь.
 test_next_greater()
 test_daily_temperatures()
 test_largest_rectangle()
+test_next_greater_circular()
 print("ok")

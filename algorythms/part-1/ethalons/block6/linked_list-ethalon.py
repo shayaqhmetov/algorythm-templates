@@ -45,15 +45,17 @@
     4. Вернуть head вместо prev / dummy.next. После разворота head — хвост,
        и наружу уедет список из одного элемента.
 
-ТРИ ВАРИАНТА, КОТОРЫЕ НАДО РАЗЛИЧАТЬ
+ЧЕТЫРЕ ВАРИАНТА, КОТОРЫЕ НАДО РАЗЛИЧАТЬ
     A) развернуть связи   — reverse_list     (три указателя)
     Б) собрать новый      — merge_two_lists  (dummy)
     В) найти цикл         — detect_cycle     (два бегуна)
+    Г) убрать k-й с конца — remove_nth_from_end (dummy + разрыв между бегунами)
 
 ПОРЯДОК ДРИЛЛА (5 минут)
     В сессию берёшь ОДНУ функцию. Читаешь блок над ней в -drill.py как
     задание, пишешь тело, гоняешь её тесты, сверяешь с этим файлом.
-    Ротация: 1) reverse_list  2) merge_two_lists  3) detect_cycle  4) с начала.
+    Ротация: 1) reverse_list  2) merge_two_lists  3) detect_cycle
+             4) remove_nth_from_end.
     ListNode и сборщики списков дриллить не надо — они уже написаны.
 
 ПРИЗНАК, ЧТО ШАБЛОН СЕЛ
@@ -234,6 +236,62 @@ def detect_cycle(head):
 
 
 # =============================================================================
+# remove_nth_from_end — LeetCode 19, Remove Nth Node From End of List
+# ВАРИАНТ Г: два бегуна с фиксированным разрывом + фиктивная голова
+#
+# УСЛОВИЕ
+#     Дано: голова списка и число n, 1 <= n <= длина списка.
+#     Удалить n-й узел С КОНЦА и вернуть голову.
+#     За ОДИН проход: длину заранее не считаем.
+#
+# ПРИМЕР
+#     1 -> 2 -> 3 -> 4 -> 5, n = 2   ->   1 -> 2 -> 3 -> 5
+#
+#     dummy -> 1 -> 2 -> 3 -> 4 -> 5
+#     slow                                 fast ушёл на 2 вперёд:
+#                   fast
+#
+#     двигаем обоих, пока fast не встанет на последний узел:
+#
+#     dummy -> 1 -> 2 -> 3 -> 4 -> 5
+#                        slow      fast
+#
+#     slow стоит ПЕРЕД удаляемым: slow.next = slow.next.next
+#
+# ИДЕЯ
+#     "n-й с конца" нельзя отсчитать назад — ссылок назад нет.
+#     Зато можно держать между двумя указателями разрыв ровно в n узлов.
+#     Когда передний упрётся в конец, задний окажется на нужном месте.
+#     Это те же два бегуна, только не с разной скоростью, а с форой.
+#
+# ЗАЧЕМ ЗДЕСЬ dummy
+#     Чтобы вырезать узел, нужен узел ПЕРЕД ним. У головы предыдущего нет,
+#     и удаление головы (n == длине) стало бы отдельной веткой.
+#     С фиктивной головой ветки нет: перед настоящей головой стоит dummy.
+#     Оба бегуна стартуют с dummy, а не с head.
+#
+# ГДЕ ОСТАНОВИТЬСЯ
+#     while fast.next, а не while fast. Нужно, чтобы fast встал НА последний
+#     узел, а не ушёл в None: тогда slow окажется перед удаляемым,
+#     а не на нём. Ошибка на единицу здесь удаляет соседний узел.
+# =============================================================================
+
+def remove_nth_from_end(head, n):
+    dummy = ListNode(0, head)            # удалить могут и саму голову
+    slow = fast = dummy
+
+    for _ in range(n):                   # фора в n узлов
+        fast = fast.next
+
+    while fast.next:                     # fast на последнем — slow перед целью
+        slow = slow.next
+        fast = fast.next
+
+    slow.next = slow.next.next           # вырезали
+    return dummy.next                    # не head: голову могли удалить
+
+
+# =============================================================================
 # ТЕСТЫ
 # build_list, to_list, node_at и make_cycle уже написаны — их дриллить не надо.
 # Помеченные (!) — ловушки.
@@ -308,7 +366,28 @@ def test_detect_cycle():
     assert detect_cycle(build_list([1, 2, 3, 4])) is None
 
 
+def test_remove_nth_from_end():
+    # базовый
+    assert to_list(remove_nth_from_end(build_list([1, 2, 3, 4, 5]), 2)) == [1, 2, 3, 5]
+    # (!) удаляется голова — ловит отсутствие dummy и return head
+    assert to_list(remove_nth_from_end(build_list([1, 2]), 2)) == [2]
+    assert to_list(remove_nth_from_end(build_list([1, 2, 3]), 3)) == [2, 3]
+    # (!) единственный узел — список становится пустым
+    assert remove_nth_from_end(build_list([1]), 1) is None
+    # последний узел
+    assert to_list(remove_nth_from_end(build_list([1, 2]), 1)) == [1]
+    assert to_list(remove_nth_from_end(build_list([1, 2, 3]), 1)) == [1, 2]
+    # (!) середина — ловит ошибку на единицу: удалён сосед, а не тот узел
+    assert to_list(remove_nth_from_end(build_list([1, 2, 3]), 2)) == [1, 3]
+    # (!) равные значения — удаляется узел по позиции, а не по val
+    assert to_list(remove_nth_from_end(build_list([7, 7, 7]), 2)) == [7, 7]
+    # (!) узлы те же самые, а не копии
+    head = build_list([1, 2, 3])
+    assert remove_nth_from_end(head, 1) is head
+
+
 test_reverse_list()
 test_merge_two_lists()
 test_detect_cycle()
+test_remove_nth_from_end()
 print("ok — linked_list, все тесты прошли")

@@ -5,7 +5,7 @@
 memoization-ethalon.py, туда заглядывать ТОЛЬКО после запуска тестов.
 
 Одна функция за сессию, 5 минут.
-Ротация: 1) climb_stairs  2) coin_change  3) lcs  4) с начала.
+Ротация: 1) climb_stairs  2) coin_change  3) lcs  4) house_robber.
 
 Перед тем как писать, проговори вслух: ЧТО ТАКОЕ СОСТОЯНИЕ В ЭТОЙ ЗАДАЧЕ.
 Не сформулировал — писать рано. В третьей функции состояние из ДВУХ
@@ -64,6 +64,22 @@ def lcs(a, b):
 
 
 # =============================================================================
+# house_robber — LeetCode 198
+#
+# nums — сколько денег лежит в каждом доме на улице.
+# Два СОСЕДНИХ дома брать нельзя.
+# Вернуть наибольшую сумму, которую можно унести.
+#
+#     [2, 7, 9, 3, 1]  -> 12    (2 + 9 + 1)
+#     [2, 1, 1, 2]     -> 4     (первый и последний)
+#     []               -> 0
+# =============================================================================
+
+def house_robber(nums):
+    pass
+
+
+# =============================================================================
 # ТЕСТЫ
 # =============================================================================
 
@@ -107,8 +123,26 @@ def test_lcs():
     assert lcs("ezupkr", "ubmrapg") == 2
 
 
+def test_house_robber():
+    assert house_robber([1, 2, 3, 1]) == 4
+    assert house_robber([2, 7, 9, 3, 1]) == 12
+    assert house_robber([2, 1, 1, 2]) == 4
+    assert house_robber([]) == 0
+    assert house_robber([5]) == 5
+    assert house_robber([5, 1]) == 5
+    assert house_robber([1, 5]) == 5
+    assert house_robber([0, 0, 0]) == 0
+    assert house_robber([1, 9, 1]) == 9
+    big = [(i * 7) % 11 for i in range(80)]
+    prev = best = 0
+    for x in big:
+        prev, best = best, max(best, prev + x)
+    assert house_robber(big) == best
+
+
 # Закомментируй те, что сегодня не пишешь.
 test_climb_stairs()
 test_coin_change()
 test_lcs()
+test_house_robber()
 print("ok")

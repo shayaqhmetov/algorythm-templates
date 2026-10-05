@@ -6,8 +6,8 @@ union_find-ethalon.py, туда заглядывать ТОЛЬКО после �
 
 Одна функция за сессию, 5 минут.
 Ротация: 1) DSU  2) count_components  3) find_redundant_connection
-         4) с начала.
-DSU пишется каждый раз, на нём стоят обе остальные.
+         4) min_spanning_cost.
+DSU пишется каждый раз, на нём стоят все остальные.
 
 Перед тем как писать, проговори вслух: ЧТО ЗНАЧИТ False ОТ union.
 
@@ -89,6 +89,23 @@ def find_redundant_connection(edges):
 
 
 # =============================================================================
+# min_spanning_cost — LeetCode 1135
+#
+# Дано: n вершин 0..n-1 и список рёбер [a, b, цена].
+# Вернуть минимальную суммарную цену рёбер, которыми можно связать все
+# вершины в одну группу. Связать всех невозможно — вернуть -1.
+# Список edges не менять.
+#
+#     n = 3, edges = [[0,1,5], [1,2,6], [0,2,1]]  -> 6    (рёбра ценой 1 и 5)
+#     n = 4, edges = [[0,1,3], [2,3,4]]           -> -1
+#     n = 1, edges = []                           -> 0
+# =============================================================================
+
+def min_spanning_cost(n, edges):
+    pass
+
+
+# =============================================================================
 # ТЕСТЫ
 # =============================================================================
 
@@ -143,8 +160,26 @@ def test_find_redundant_connection():
         [[1, 4], [3, 4], [1, 3], [1, 2], [4, 5]]) == [1, 3]
 
 
+def test_min_spanning_cost():
+    assert min_spanning_cost(3, [[0, 1, 5], [1, 2, 6], [0, 2, 1]]) == 6
+    assert min_spanning_cost(4, [[0, 1, 3], [2, 3, 4]]) == -1
+    assert min_spanning_cost(3, [[0, 1, 1]]) == -1
+    assert min_spanning_cost(2, []) == -1
+    assert min_spanning_cost(3, [[0, 1, 1], [1, 2, 1], [0, 2, 1]]) == 2
+    assert min_spanning_cost(4, [[0, 1, 10], [1, 2, 1], [2, 3, 2], [0, 3, 3]]) == 6
+    assert min_spanning_cost(2, [[0, 1, 7], [0, 1, 2]]) == 2
+    assert min_spanning_cost(
+        4, [[0, 3, 100], [0, 1, 1], [2, 3, 1], [0, 2, 2], [1, 3, 2]]) == 4
+    assert min_spanning_cost(1, []) == 0
+    assert min_spanning_cost(0, []) == 0
+    src = [[0, 1, 5], [0, 2, 1]]
+    assert min_spanning_cost(3, src) == 6
+    assert src == [[0, 1, 5], [0, 2, 1]]
+
+
 # Закомментируй те, что сегодня не пишешь.
 test_dsu()
 test_count_components()
 test_find_redundant_connection()
+test_min_spanning_cost()
 print("ok")

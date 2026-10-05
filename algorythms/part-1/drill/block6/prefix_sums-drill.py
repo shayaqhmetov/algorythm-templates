@@ -6,7 +6,7 @@ prefix_sums-ethalon.py, туда заглядывать ТОЛЬКО после 
 
 Одна функция за сессию, 5 минут.
 Ротация: 1) prefix_sums  2) subarray_sum_k  3) product_except_self
-         4) с начала.
+         4) range_add.
 
 Перед тем как писать, проговори вслух: ПОЧЕМУ ЗДЕСЬ НЕ ОКНО.
 Ответ короткий — отрицательные числа.
@@ -57,6 +57,22 @@ def subarray_sum_k(nums, k):
 # =============================================================================
 
 def product_except_self(nums):
+    pass
+
+
+# =============================================================================
+# range_add — LeetCode 370
+#
+# Массив из n нулей и список операций [l, r, delta]: каждая прибавляет
+# delta ко всем элементам с l по r ВКЛЮЧИТЕЛЬНО.
+# Вернуть массив после всех операций. Каждая операция — за O(1).
+#
+#     n = 5, updates = [[1,3,2], [2,4,3], [0,2,-2]]  -> [-2, 0, 3, 5, 3]
+#     n = 3, updates = [[0,2,5]]                     -> [5, 5, 5]
+#     n = 3, updates = []                            -> [0, 0, 0]
+# =============================================================================
+
+def range_add(n, updates):
     pass
 
 
@@ -120,8 +136,22 @@ def test_product_except_self():
     assert product_except_self(big) == expected
 
 
+def test_range_add():
+    assert range_add(5, [[1, 3, 2], [2, 4, 3], [0, 2, -2]]) == [-2, 0, 3, 5, 3]
+    assert range_add(3, [[0, 2, 5]]) == [5, 5, 5]
+    assert range_add(1, [[0, 0, 7]]) == [7]
+    assert range_add(3, [[1, 1, 4]]) == [0, 4, 0]
+    assert range_add(3, []) == [0, 0, 0]
+    assert range_add(0, []) == []
+    assert range_add(2, [[0, 1, 1], [0, 1, 1]]) == [2, 2]
+    assert range_add(3, [[0, 2, 5], [0, 2, -5]]) == [0, 0, 0]
+    assert range_add(4, [[3, 3, 1], [0, 0, 1]]) == [1, 0, 0, 1]
+    assert range_add(5, [[0, 4, 1], [1, 3, 1], [2, 2, 1]]) == [1, 2, 3, 2, 1]
+
+
 # Закомментируй те, что сегодня не пишешь.
 test_prefix_sums()
 test_subarray_sum_k()
 test_product_except_self()
+test_range_add()
 print("ok")

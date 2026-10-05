@@ -5,7 +5,7 @@
 structures-ethalon.py, туда заглядывать ТОЛЬКО после запуска тестов.
 
 Один класс за сессию, 5 минут.
-Ротация: 1) MinStack  2) LRUCache  3) Trie  4) с начала.
+Ротация: 1) MinStack  2) LRUCache  3) Trie  4) MyQueue.
 
 Перед тем как писать, проговори вслух: ЧТО ХРАНИМ ВНУТРИ.
 Здесь всё решается выбором представления, а не алгоритмом.
@@ -95,6 +95,43 @@ class Trie:
         pass
 
     def starts_with(self, prefix):
+        pass
+
+
+# =============================================================================
+# MyQueue — LeetCode 232
+#
+# Очередь (первым пришёл — первым ушёл) на ДВУХ СТЕКАХ: у списка разрешены
+# только append, pop() с конца и взгляд на [-1].
+#     push(x)  — положить в хвост очереди
+#     pop()    — снять и вернуть голову; очередь пуста — None
+#     peek()   — вернуть голову, не снимая; очередь пуста — None
+#     empty()  — True, если элементов нет
+#
+#     q = MyQueue()
+#     q.push(1); q.push(2)
+#     q.peek()   -> 1
+#     q.pop()    -> 1
+#     q.push(3)
+#     q.pop()    -> 2
+#     q.pop()    -> 3
+#     q.empty()  -> True
+# =============================================================================
+
+class MyQueue:
+    def __init__(self):
+        pass
+
+    def push(self, x):
+        pass
+
+    def pop(self):
+        pass
+
+    def peek(self):
+        pass
+
+    def empty(self):
         pass
 
 
@@ -203,8 +240,41 @@ def test_trie():
     assert t.search("car") is True and t.search("card") is True
 
 
+def test_myqueue():
+    q = MyQueue()
+    assert q.empty() is True
+    q.push(1)
+    q.push(2)
+    assert q.peek() == 1
+    assert q.pop() == 1
+    assert q.empty() is False
+    q.push(3)
+    assert q.pop() == 2
+    assert q.pop() == 3
+    assert q.empty() is True
+    assert q.pop() is None
+    assert q.peek() is None
+    q.push(5)
+    assert q.peek() == 5
+    assert q.peek() == 5
+    assert q.pop() == 5
+    assert q.empty() is True
+    q.push(6)
+    assert q.empty() is False
+    q = MyQueue()
+    out = []
+    for i in range(10):
+        q.push(i)
+        if i % 3 == 2:
+            out.append(q.pop())
+    while not q.empty():
+        out.append(q.pop())
+    assert out == list(range(10))
+
+
 # Закомментируй те, что сегодня не пишешь.
 test_minstack()
 test_lrucache()
 test_trie()
+test_myqueue()
 print("ok")

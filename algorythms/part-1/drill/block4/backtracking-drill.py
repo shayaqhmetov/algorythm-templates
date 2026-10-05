@@ -5,10 +5,12 @@
 backtracking-ethalon.py, туда заглядывать ТОЛЬКО после запуска тестов.
 
 Одна функция за сессию, 5 минут.
-Ротация: 1) subsets  2) permutations  3) combination_sum  4) с начала.
+Ротация: 1) subsets  2) permutations  3) combination_sum
+         4) generate_parentheses.
 
 Перед тем как писать, проговори вслух: ЧТО ПЕРЕДАЁТСЯ В РЕКУРСИЮ —
-i + 1, i или ничего. Это единственное, чем эти три задачи отличаются.
+i + 1, i или ничего. Это единственное, чем первые три задачи отличаются.
+В четвёртой массива нет вовсе — в рекурсию идут два счётчика.
 И не забудь, что в res кладётся КОПИЯ пути.
 
 Не уложился или тест упал — пометь шаблон и поставь на завтра вне очереди,
@@ -56,6 +58,22 @@ def permutations(nums):
 # =============================================================================
 
 def combination_sum(candidates, target):
+    pass
+
+
+# =============================================================================
+# generate_parentheses — LeetCode 22
+#
+# Дано число n. Вернуть все ПРАВИЛЬНЫЕ скобочные последовательности
+# из n пар скобок — списком строк. Порядок ответов любой.
+#
+#     n = 1  ->  "()"
+#     n = 2  ->  "(())", "()()"
+#     n = 3  ->  "((()))", "(()())", "(())()", "()(())", "()()()"
+#     n = 0  ->  [""]
+# =============================================================================
+
+def generate_parentheses(n):
     pass
 
 
@@ -113,8 +131,23 @@ def test_combination_sum():
     assert norm_sets(combination_sum([7, 2, 3], 7)) == norm_sets([[2, 2, 3], [7]])
 
 
+def test_generate_parentheses():
+    assert sorted(generate_parentheses(3)) == sorted(
+        ["((()))", "(()())", "(())()", "()(())", "()()()"])
+    assert sorted(generate_parentheses(2)) == ["(())", "()()"]
+    assert generate_parentheses(1) == ["()"]
+    assert generate_parentheses(0) == [""]
+    assert ")(" not in generate_parentheses(1)
+    assert "())(" not in generate_parentheses(2)
+    assert all(len(s) == 8 for s in generate_parentheses(4))
+    assert len(generate_parentheses(4)) == 14
+    assert len(generate_parentheses(5)) == 42
+    assert len(set(generate_parentheses(4))) == 14
+
+
 # Закомментируй те, что сегодня не пишешь.
 test_subsets()
 test_permutations()
 test_combination_sum()
+test_generate_parentheses()
 print("ok")

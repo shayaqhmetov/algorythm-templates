@@ -5,7 +5,8 @@
 heap_top_k-ethalon.py, туда заглядывать ТОЛЬКО после запуска тестов.
 
 Одна функция за сессию, 5 минут.
-Ротация: 1) k_largest  2) top_k_frequent  3) merge_k_sorted  4) с начала.
+Ротация: 1) k_largest  2) top_k_frequent  3) merge_k_sorted
+         4) last_stone_weight.
 
 Перед тем как писать, проговори вслух: КУЧА В PYTHON МИНИМАЛЬНАЯ,
 и для k САМЫХ БОЛЬШИХ мы выкидываем из неё МИНИМУМ.
@@ -62,6 +63,23 @@ def merge_k_sorted(lists):
 
 
 # =============================================================================
+# last_stone_weight — LeetCode 1046
+#
+# Даны веса камней. Каждый ход берём два САМЫХ ТЯЖЁЛЫХ и сталкиваем:
+# равные — оба исчезают; разные — остаётся осколок весом в разницу.
+# Вернуть вес последнего камня. Камней не осталось — 0.
+# Список stones не менять.
+#
+#     [2, 7, 4, 1, 8, 1]  -> 1
+#     [2, 2]              -> 0
+#     [1]                 -> 1
+# =============================================================================
+
+def last_stone_weight(stones):
+    pass
+
+
+# =============================================================================
 # ТЕСТЫ
 # =============================================================================
 
@@ -101,8 +119,23 @@ def test_merge_k_sorted():
     assert merge_k_sorted([[-3, 0], [-5, -1]]) == [-5, -3, -1, 0]
 
 
+def test_last_stone_weight():
+    assert last_stone_weight([2, 7, 4, 1, 8, 1]) == 1
+    assert last_stone_weight([2, 2]) == 0
+    assert last_stone_weight([]) == 0
+    assert last_stone_weight([1]) == 1
+    assert last_stone_weight([3, 7, 2]) == 2
+    assert last_stone_weight([10, 4, 2, 1]) == 3
+    assert last_stone_weight([1, 3]) == 2
+    assert last_stone_weight([5, 5, 5]) == 5
+    src = [3, 1, 2]
+    assert last_stone_weight(src) == 0
+    assert src == [3, 1, 2]
+
+
 # Закомментируй те, что сегодня не пишешь.
 test_k_largest()
 test_top_k_frequent()
 test_merge_k_sorted()
+test_last_stone_weight()
 print("ok")

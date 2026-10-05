@@ -5,8 +5,8 @@
 binary_search-ethalon.py, туда заглядывать ТОЛЬКО после запуска тестов.
 
 Одна функция за сессию, 5 минут.
-Ротация: 1) bs  2) search_range  3) min_eating_speed  4) с начала.
-bs пишется каждый раз, на нём стоят обе остальные.
+Ротация: 1) bs  2) search_range  3) min_eating_speed  4) find_min_rotated.
+bs пишется каждый раз, на нём стоят все остальные.
 
 Перед тем как писать, проговори вслух: ЧТО ТАКОЕ ok И ПОЧЕМУ ОН МОНОТОНЕН.
 
@@ -67,6 +67,22 @@ def min_eating_speed(piles, h):
 
 
 # =============================================================================
+# find_min_rotated — LeetCode 153
+#
+# Дан непустой массив РАЗЛИЧНЫХ чисел. Он был отсортирован по возрастанию,
+# а потом циклически сдвинут (возможно, на ноль позиций).
+# Вернуть минимальный элемент за O(log n) — через bs.
+#
+#     [4, 5, 6, 7, 0, 1, 2]  -> 0
+#     [1, 2, 3]              -> 1    (сдвига нет)
+#     [7]                    -> 7
+# =============================================================================
+
+def find_min_rotated(nums):
+    pass
+
+
+# =============================================================================
 # ТЕСТЫ
 # =============================================================================
 
@@ -109,8 +125,22 @@ def test_min_eating_speed():
     assert min_eating_speed([5], 2) == 3
 
 
+def test_find_min_rotated():
+    assert find_min_rotated([4, 5, 6, 7, 0, 1, 2]) == 0
+    assert find_min_rotated([3, 4, 5, 1, 2]) == 1
+    assert find_min_rotated([1, 2, 3]) == 1
+    assert find_min_rotated([11, 13, 15, 17]) == 11
+    assert find_min_rotated([7]) == 7
+    assert find_min_rotated([2, 1]) == 1
+    assert find_min_rotated([1, 2]) == 1
+    assert find_min_rotated([2, 3, 4, 5, 1]) == 1
+    assert find_min_rotated([5, 1, 2, 3, 4]) == 1
+    assert find_min_rotated([0, 3, -5, -2]) == -5
+
+
 # Закомментируй те, что сегодня не пишешь.
 test_bs()
 test_search_range()
 test_min_eating_speed()
+test_find_min_rotated()
 print("ok")
