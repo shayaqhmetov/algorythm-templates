@@ -128,6 +128,15 @@ body {
 .brand h1 { margin: 0; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; }
 .brand p { margin: 4px 0 0; color: var(--dim); font-size: 12.5px; }
 .brand .row { display: flex; gap: 6px; margin-top: 10px; }
+.groups { display: flex; align-items: center; gap: 4px; margin-top: 12px; }
+.groups .lbl { color: var(--dim); font-size: 12px; margin-right: 4px; }
+.groups button {
+  min-width: 30px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel-2); color: var(--muted); font: 12px var(--mono); cursor: pointer;
+}
+.groups button:hover { color: var(--text); border-color: var(--accent); }
+.groups button.on { background: var(--accent); border-color: var(--accent); color: #0b0e14; font-weight: 600; }
+.gprog { margin: 8px 0 0; color: var(--dim); font: 11.5px var(--mono); min-height: 1.4em; }
 .blk { margin-top: 18px; }
 .blk > h2 {
   margin: 0; padding: 0 18px 6px; font-size: 11px; letter-spacing: .12em;
@@ -233,6 +242,8 @@ main { display: flex; flex-direction: column; overflow: hidden; }
 .chip:hover { color: var(--text); }
 .chip.on { border-color: var(--accent); color: var(--text); }
 .chip .last { font-size: 10px; color: var(--dim); }
+.chip .gn { color: var(--dim); font-size: 10px; }
+.chip.grp .gn { color: var(--accent); }
 .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
 .chip .dot.ok { background: var(--ok); } .chip .dot.bad { background: var(--bad); }
 .hint { margin-left: auto; color: var(--dim); font-size: 12px; }
@@ -423,6 +434,15 @@ table.diff .dempty { padding: 24px 16px; color: var(--dim); }
       <div class="row">
         <button class="btn small" id="theme">тема: авто</button>
       </div>
+      <div class="groups" id="groups" title="группа N — это N-я функция каждого шаблона">
+        <span class="lbl">группа</span>
+        <button data-g="0">все</button>
+        <button data-g="1">1</button>
+        <button data-g="2">2</button>
+        <button data-g="3">3</button>
+        <button data-g="4">4</button>
+      </div>
+      <p class="gprog" id="gprog"></p>
     </div>
     <div id="nav"></div>
   </aside>
@@ -449,7 +469,7 @@ table.diff .dempty { padding: 24px 16px; color: var(--dim); }
 
 <script>
 const LS = "algodrill:v2";
-const state = { blocks: [], tpl: null, func: null, tab: "theory", lang: "python" };
+const state = { blocks: [], tpl: null, func: null, tab: "theory", lang: "python", group: 0 };
 const timer = { sec: 0, limit: 300, running: false, id: null, touched: false };
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -842,15 +862,46 @@ function tplStatus(t) {
   if (!results.length) return "";
   return results.every(r => r.ok) ? "ok" : "bad";
 }
+
+/* ---------- группа: N-я функция каждого шаблона, одна группа на день ---------- */
+const GROUP_KEY = LS + ":group";
+const groupFn = t => state.group ? t.functions[state.group - 1] || null : null;
+const fnName = f => (f && f.name) || f;                 // в списке блоков — строки, в шаблоне — объекты
+function today(a) {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  return !!a && a.t >= d.getTime();
+}
+function groupStatus(t) {                               // в режиме группы точка — про сегодня
+  const a = lastAttempt(t.id, fnName(groupFn(t)));
+  return today(a) ? (a.ok ? "ok" : "bad") : "";
+}
+function renderGroups() {
+  $("#groups").querySelectorAll("button").forEach(b =>
+    b.classList.toggle("on", +b.dataset.g === state.group));
+  const all = state.blocks.flatMap(b => b.templates).filter(groupFn);
+  $("#gprog").textContent = state.group
+    ? `сегодня: ${all.filter(t => groupStatus(t) === "ok").length} / ${all.length}` : "";
+}
+function setGroup(g) {
+  state.group = g;
+  try { localStorage.setItem(GROUP_KEY, String(g)); } catch (e) {}
+  renderNav();
+  const f = state.tpl && groupFn(state.tpl);
+  if (f && f.name !== state.func) {                     // открытый шаблон — сразу на функцию группы
+    saveDraft(); state.func = f.name; state.cmp = false; resetTimer(); renderDrill(); saveSession();
+  } else if (state.tpl) renderDrill();
+}
+
 function renderNav() {
+  renderGroups();
   $("#nav").innerHTML = state.blocks.map(b => `
     <div class="blk">
       <h2>${esc(b.block)}</h2>
       ${b.templates.map(t => `
         <button class="tpl ${state.tpl && state.tpl.id === t.id ? "on" : ""}" data-id="${t.id}">
           <span class="n">${t.number}</span>
-          <span class="t">${esc(t.title)}<small>${esc(t.name)}</small></span>
-          <span class="dot ${tplStatus(t)}"></span>
+          <span class="t">${esc(t.title)}<small>${esc(groupFn(t) || t.name)}</small></span>
+          <span class="dot ${state.group ? groupStatus(t) : tplStatus(t)}"></span>
         </button>`).join("")}
     </div>`).join("");
   $("#nav").querySelectorAll(".tpl").forEach(el =>
@@ -888,10 +939,10 @@ function renderDrill() {
   const f = t.functions.find(x => x.name === state.func) || t.functions[0];
   state.func = f.name;
 
-  const chips = t.functions.map(x => {
+  const chips = t.functions.map((x, i) => {
     const a = lastAttempt(t.id, x.name);
-    return `<button class="chip ${x.name === state.func ? "on" : ""}" data-fn="${x.name}">
-      <span class="dot ${a ? (a.ok ? "ok" : "bad") : ""}"></span>${esc(x.name)}
+    return `<button class="chip ${x.name === state.func ? "on" : ""} ${i + 1 === state.group ? "grp" : ""}" data-fn="${x.name}">
+      <span class="dot ${a ? (a.ok ? "ok" : "bad") : ""}"></span><span class="gn">${i + 1}</span>${esc(x.name)}
       ${a ? `<span class="last">${mmss(a.sec)}</span>` : ""}</button>`;
   }).join("");
 
@@ -1586,6 +1637,8 @@ async function openTemplate(id, sess) {
   const names = state.tpl.functions.map(f => f.name);
   const remembered = (sess && sess.id === id && sess.func) || localStorage.getItem(FN_KEY(id));
   state.func = names.includes(remembered) ? remembered : (names[0] || null);
+  const g = groupFn(state.tpl);
+  if (g && !(sess && sess.id === id)) state.func = g.name;   // группа важнее памяти; перезагрузка — нет
 
   resetTimer();
   theoryScroll = 0;
@@ -1624,6 +1677,7 @@ function setTab(tab) {
 
 document.querySelectorAll(".tab[data-tab]").forEach(b => b.onclick = () => setTab(b.dataset.tab));
 $("#theme").onclick = cycleTheme;
+$("#groups").querySelectorAll("button").forEach(b => b.onclick = () => setGroup(+b.dataset.g));
 applyTheme(localStorage.getItem(LS + ":theme") || "light");
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && state.cmp && state.tab === "drill") setCompare(false);
@@ -1645,6 +1699,7 @@ window.addEventListener("hashchange", () => {
 
 (async function boot() {
   state.blocks = await api.blocks();
+  state.group = Math.min(4, Math.max(0, +localStorage.getItem(GROUP_KEY) || 0));
   renderNav();
 
   const sess = loadSession();
