@@ -37,13 +37,27 @@ DSU пишется каждый раз, на нём стоят все остал
 
 class DSU:
     def __init__(self, n):
-        pass
+        self.parent = [i for i in range(n)]
+        self.size = [1] * n
+        self.count = n
 
     def find(self, x):
-        pass
+        while(x != self.parent[x]):
+            self.parent[x] = self.parent[self.parent[x]]
+            x = self.parent[x]
+        return x
 
     def union(self, a, b):
-        pass
+        ra, rb = self.find(a), self.find(b)
+        if ra == rb:
+            return False
+        if self.size[ra] < self.size[rb]:
+            ra, rb = rb, ra
+        self.parent[rb] = ra
+        self.size[ra] += self.size[rb]
+        self.count -= 1
+        return True
+    
 
 
 # =============================================================================
@@ -179,7 +193,7 @@ def test_min_spanning_cost():
 
 # Закомментируй те, что сегодня не пишешь.
 test_dsu()
-test_count_components()
-test_find_redundant_connection()
+# test_count_components()
+# test_find_redundant_connection()
 test_min_spanning_cost()
 print("ok")

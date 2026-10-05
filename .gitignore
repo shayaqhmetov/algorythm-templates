@@ -3,3 +3,4 @@ __pycache__/
 
 # собирается из web/build_static.py, публикуется через .github/workflows/pages.yml
 docs/
+.codesight

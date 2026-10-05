@@ -29,7 +29,33 @@ from collections import deque
 # =============================================================================
 
 def num_islands(grid):
-    pass
+    if not grid or not grid[0]:
+        return 0
+    
+    rows, cols = len(grid), len(grid[0])
+    count = 0
+    seen = set()
+    for r in range(rows):
+        for c in range(cols):
+            if grid[r][c] != "1" or (r,c) in seen:
+                continue
+            
+            count+=1
+            seen.add((r,c))
+            q = deque([(r,c)])
+            while q:
+                cr, cc = q.popleft()
+                for dr, dc in DIRS4:
+                    nr, nc = cr+dr, cc+dc
+                    if (
+                        0 <= nr < rows and 0 <= nc < cols
+                        and grid[nr][nc] == "1"
+                        and (nr, nc) not in seen
+                    ):
+                        seen.add((nr,nc))
+                        q.append((nr,nc))
+    return count
+
 
 
 # =============================================================================
@@ -49,7 +75,35 @@ def num_islands(grid):
 # =============================================================================
 
 def oranges_rotting(grid):
-    pass
+    if not grid or not grid[0]:
+        return 0
+    
+    rows, cols = len(grid), len(grid[0])
+    
+    fresh = 0
+    q = deque()
+    for r in range(rows):
+        for c in range(cols):
+            if grid[r][c] == 2:
+                q.append((r,c))
+            if grid[r][c] == 1:
+                fresh += 1
+    minutes = 0     
+    while q and fresh:
+        for _ in range(len(q)):
+            cr, cc = q.popleft()
+            for dr, dc in DIRS4:
+                nr, nc = cr + dr, cc + dc
+                if(
+                    0 <= nr < rows and 0 <= nc < cols
+                    and grid[nr][nc] == 1
+                ):
+                    grid[nr][nc] = 2
+                    q.append((nr,nc))
+                    fresh -= 1
+        minutes += 1
+            
+    return minutes if fresh == 0 else -1
 
 
 # =============================================================================
@@ -72,7 +126,30 @@ def oranges_rotting(grid):
 # =============================================================================
 
 def shortest_path(grid):
-    pass
+    n = len(grid)
+    if n == 0 or grid[0][0] == 1 or grid[n-1][n-1] == 1:
+        return -1
+    
+    dist = 1
+    q = deque([(0,0)])
+    seen = {(0,0)}
+    while q:
+        for _ in range(len(q)):
+            r,c = q.popleft()
+            if r == n-1 and c == n -1:
+                return dist
+            for dr, dc in DIRS8:
+                nr, nc = r+dr, c+dc
+            
+                if (
+                    0 <= nr < n and 0 <= nc < n
+                    and grid[nr][nc] == 0
+                    and (nr, nc) not in seen
+                ):
+                    q.append((nr, nc))
+                    seen.add((nr, nc))
+        dist += 1
+    return -1
 
 
 # =============================================================================
@@ -188,8 +265,8 @@ def test_update_matrix():
 
 
 # Закомментируй те, что сегодня не пишешь.
-test_num_islands()
-test_oranges_rotting()
+# test_num_islands()
+# test_oranges_rotting()
 test_shortest_path()
 test_update_matrix()
 print("ok")
