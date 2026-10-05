@@ -97,6 +97,41 @@ def collect(path):
     return src, tree, out
 
 
+def constants_of(src, tree):
+    """Константы верхнего уровня (DIRS4, DIRS8): имя -> исходник присваивания."""
+    out = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name):
+                    out[t.id] = ast.get_source_segment(src, node)
+    return out
+
+
+def needs_of(target, tree):
+    """
+    Что пишется с нуля ВМЕСТЕ с целевой функцией: другие цели дрилла, которые
+    она вызывает (bs, build_adj, DSU), и константы верхнего уровня (DIRS4).
+    Из собранного файла они выбрасываются — их место в редакторе.
+    Вспомогательный код без теста (ListNode, build) остаётся готовым.
+    Имена идут в порядке файла.
+    """
+    defs = {n.name: n for n in tree.body if is_definition(n)}
+    tested = {n for n in defs if f"test_{n.lower()}" in defs}
+    consts = {t.id: n for n in tree.body if isinstance(n, ast.Assign)
+              for t in n.targets if isinstance(t, ast.Name)}
+    pool = {**{n: defs[n] for n in tested}, **consts}
+
+    found, todo = set(), [defs[target]]
+    while todo:
+        for sub in ast.walk(todo.pop()):
+            if isinstance(sub, ast.Name) and sub.id in pool and sub.id != target \
+                    and sub.id not in found:
+                found.add(sub.id)
+                todo.append(pool[sub.id])                  # bs сам может что-то звать
+    return sorted(found, key=lambda n: pool[n].lineno)
+
+
 def title_of(docstring):
     first = (docstring or "").strip().splitlines()
     if not first:
@@ -122,6 +157,11 @@ def load_template(block, name):
         dsrc, _dtree, ddefs = collect(drill_path)
 
     tests = {n: d for n, d in edefs.items() if n.startswith("test_")}
+    consts = constants_of(esrc, etree)
+
+    def stub(fname):                                   # заглушка — из дрилла, если она там есть
+        drill = ddefs.get(fname)
+        return stub_of((drill or edefs[fname])["node"], dsrc if drill else esrc)
 
     functions = []
     for fname, d in edefs.items():
@@ -130,13 +170,19 @@ def load_template(block, name):
         if f"test_{fname.lower()}" not in tests:
             continue                                   # без теста — вспомогательный код
         drill = ddefs.get(fname)
+        needs = needs_of(fname, etree)
+        # константы в заглушку не идут: их пишут с нуля, и имя у них любое
+        parts = [n for n in needs if n in edefs] + [fname]
         functions.append({
             "name": fname,
             "kind": "class" if isinstance(d["node"], ast.ClassDef) else "function",
             "doc": d["doc"],
+            "needs": needs,
+            # эталон для спойлера и сравнения — вместе со всем, что пишется с нуля
+            "full": "\n\n\n".join(consts.get(n) or edefs[n]["code"] for n in needs + [fname]),
             "code": d["code"],
             "task": (drill or {}).get("doc") or d["doc"],
-            "stub": stub_of((drill or d)["node"], dsrc if drill else esrc),
+            "stub": "\n\n".join(stub(n) for n in parts),
             "test": f"test_{fname.lower()}" if f"test_{fname.lower()}" in tests else None,
         })
 
@@ -353,6 +399,8 @@ def compose_parts(block, name, target):
     targets = [f["name"] for f in load_template(block, name)["functions"]] \
         if target == "__all__" else [target]
     lowered = [t.lower() for t in targets]
+    # то, что пишется с нуля вместе с целью, в собранный файл не попадает
+    scratch = set(needs_of(target, tree)) if target != "__all__" else set()
 
     before, after, used_tests = [], [], []
     seen_target = target == "__all__"
@@ -365,6 +413,12 @@ def compose_parts(block, name, target):
 
         if is_definition(node) and node.name in targets and target != "__all__":
             seen_target = True                         # тут будет код из редактора
+            continue
+
+        if is_definition(node) and node.name in scratch:
+            continue
+        if isinstance(node, ast.Assign) and \
+                any(isinstance(t, ast.Name) and t.id in scratch for t in node.targets):
             continue
 
         if is_test(node):

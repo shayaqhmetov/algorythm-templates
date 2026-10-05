@@ -250,6 +250,8 @@ main { display: flex; flex-direction: column; overflow: hidden; }
 
 .drill { display: grid; grid-template-columns: minmax(280px, 380px) minmax(420px, 1fr); height: 100%; }
 .task { border-right: 1px solid var(--line); overflow: auto; padding: 20px 22px 60px; }
+.task .needs { margin: -4px 0 12px; color: var(--muted); font-size: 12.5px; }
+.task .needs code { font: 12px var(--mono); color: var(--text); }
 .task h3 { margin: 0 0 12px; font: 12px var(--mono); color: var(--accent);
   letter-spacing: .08em; text-transform: uppercase; }
 .spoiler { margin-top: 22px; }
@@ -952,11 +954,13 @@ function renderDrill() {
       <div class="drill">
         <div class="task">
           <h3>Задание</h3>
+          ${(f.needs || []).length ? `<p class="needs">с нуля вместе с ней: ${
+            f.needs.map(n => `<code>${esc(n)}</code>`).join(", ")} — готовых в запуске нет</p>` : ""}
           <div class="sheet compact">${mdToHtml(mdDoc(f.task, 4))}</div>
           <div class="spoiler">
             <button id="reveal">показать эталон — только после запуска тестов</button>
             <div id="ethalon" class="hidden" style="margin-top:12px">
-              <div class="sheet compact"><pre class="code">${hi(f.code)}</pre></div>
+              <div class="sheet compact"><pre class="code">${hi(f.full || f.code)}</pre></div>
             </div>
           </div>
         </div>
@@ -1318,7 +1322,7 @@ function renderDiff() {
   const f = state.tpl.functions.find(x => x.name === state.func);
 
   const mine = diffLines($("#editor").value, lang().comment);
-  const ref = diffLines(f.code, LANGS.python.comment);       // эталон всегда на python
+  const ref = diffLines(f.full || f.code, LANGS.python.comment);       // эталон всегда на python
   const rows = buildRows(mine, ref);
 
   const cnt = { eq: 0, chg: 0, del: 0, ins: 0 };
